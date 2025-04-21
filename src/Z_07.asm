@@ -266,7 +266,7 @@
 .EXPORT Anim_SetObjHFlipForSpriteDescriptor
 .EXPORT AnimateItemObject
 .EXPORT AnimateObjectWalking
-.EXPORT AnimatePond
+; .EXPORT AnimatePond
 .EXPORT CalculateNextRoom
 .EXPORT ChangeTileObjTiles
 .EXPORT CheckScreenEdge
@@ -328,6 +328,7 @@
 .EXPORT UpdateHeartsAndRupees
 .EXPORT UpdatePlayer
 .EXPORT UpdateTriforcePositionMarker
+.EXPORT UpdateMapHintMarker
 .EXPORT Walker_Move
 .EXPORT WieldFlute
 
@@ -734,6 +735,9 @@ ReadOneController:
     STA ButtonsDown, X
     RTS
 
+Exit:
+    RTS
+
 UpdateTriforcePositionMarker:
     LDA CurLevel
     BEQ Exit                    ; If in OW, then return.
@@ -744,6 +748,92 @@ UpdateTriforcePositionMarker:
     LDA LevelInfo_TriforceRoomId
     LDX #$04
     JMP UpdatePositionMarker
+
+UpdateMapHintMarker:
+    LDA CurLevel
+    BNE Exit                    ; If in UW, then return.
+
+    LDA #$05                    ; Load the hex value 5 into A
+    JSR SwitchBank              ; Switching to another memory bank because this code is in 7, and we want to do stuff in 1... I think.
+    
+    LDA #$01                    ; Load the hex value 1 into A
+    STA $06                     ; A level test bit in [06] will be used to see whether we have a triforce piece.    
+    JSR @FindNextLevel
+
+    BEQ Exit                    ; If the next level room is 0, then return
+    LDX #$04                    ; Load a hex value 4 into X (It's included after a comma when you STA. The purpose of this is: It adds an offset to the address being stored to. We'll keep it at 4 because the Triforce marker isn't used in the overworld)
+    JMP UpdatePositionMarker    ; Update the marker
+
+    ; This loops until it finds a level that hasn't been completed yet.
+    ; Return:
+    ; A: The roomID to show the hint
+@FindNextLevel:
+    LDA $06                      ; The level test bit
+    BIT InvTriforce              ; If the level test bit is not in the triforce mask, then we don't have this piece. So, that's the next location
+    BEQ @GetRoomIDForTriforceBit 
+    
+    ASL $06 ; Shift to the next bit to check
+    BNE @FindNextLevel  
+
+@GetRoomIDForTriforceBit:
+    ; A should hypothetically have a binary number like so: 0001 0000 which says which level it is
+    
+    CMP #%00000001
+    BEQ GetLevel1RoomID
+
+    CMP #%00000010
+    BEQ GetLevel2RoomID
+
+    CMP #%00000100
+    BEQ GetLevel3RoomID
+
+    CMP #%00001000
+    BEQ GetLevel4RoomID
+
+    CMP #%00010000
+    BEQ GetLevel5RoomID
+
+    CMP #%00100000
+    BEQ GetLevel6RoomID
+
+    CMP #%01000000
+    BEQ GetLevel7RoomID
+
+    CMP #%10000000
+    BEQ GetLevel8RoomID
+   
+   ; Else, set it to level 9
+   LDA #$05
+
+    RTS 
+
+GetLevel1RoomID:
+	LDA #$37
+    RTS
+GetLevel2RoomID:
+	LDA #$3C
+    RTS
+GetLevel3RoomID:
+	LDA #$74
+    RTS
+GetLevel4RoomID:
+	LDA #$45
+    RTS
+GetLevel5RoomID:
+	LDA #$0B
+    RTS
+GetLevel6RoomID:
+	LDA #$22
+    RTS
+GetLevel7RoomID:
+	LDA #$42
+    RTS
+GetLevel8RoomID:
+	LDA #$6D
+    RTS
+GetLevel9RoomID:
+	LDA #$05
+    RTS
 
 CalculateNextRoom:
     LDY CurLevel
@@ -777,6 +867,9 @@ CalculateNextRoomOW:
     LDA #$00                    ; Use "open" door type.
     BEQ CalculateNextRoom_TableJump
 
+
+
+
 LevelMasks:
     .BYTE $01, $02, $04, $08, $10, $20, $40, $80
 
@@ -784,9 +877,6 @@ MarkRoomVisited:
     JSR GetRoomFlags
     ORA #$20                    ; Visit state (UW)
     STA ($00), Y
-
-Exit:
-    RTS
 
 ; Returns:
 ; A: flags for the room in level block world flags
@@ -1477,6 +1567,7 @@ DrawSpritesBetweenRooms:
     JSR HideAllSprites
     JSR UpdatePlayerPositionMarker
     JSR UpdateTriforcePositionMarker
+    JSR UpdateMapHintMarker
     LDA #$05
     JSR SwitchBank
     JSR DrawLinkBetweenRooms
@@ -2027,6 +2118,9 @@ BeginUpdateWorld:
     ; In OW.
     ; If game mode = 5, turn on sea sound effect if the room's
     ; attributes call for it.
+    LDA #$04
+    JSR SwitchBank
+    JSR UpdateMapHintMarker
     LDA GameMode
     CMP #$05
     BNE @CheckZora
@@ -2497,6 +2591,16 @@ FluteRoomSecretsOW:
     .BYTE $42, $06, $29, $2B, $30, $3A, $3C, $58
     .BYTE $60, $6E, $72
 
+RevealPondStairs:
+;    ; Set X and Y in this slot for the stairs in the pond.
+;    ; Go reveal the stairs as a secret.
+;    LDX #$A
+;    LDA #$60
+;    STA ObjX, X
+;    LDA #$98
+;    STA ObjY, X
+;    JMP RevealAndFlagSecretStairsObj
+;
 WieldFlute:
     ; Play the flute's tune.
     LDA #$10
@@ -2556,7 +2660,7 @@ WieldFlute:
 @RevealSecret:
     ; If the cycle of colors is complete or in progress, then return. The secret is already revealed.
     LDA SecretColorCycle
-    BNE @Exit
+    JSR RevealPondStairs
 
     ; Look for an empty slot from 9 to 1.
     LDY #$09
@@ -2581,12 +2685,12 @@ WieldFlute:
     PLA
 
 @SummonWhirlwind:
-    ; Summon the whirlwind.
-    LDA #$01
-    JSR SwitchBank
-    JSR SummonWhirlwind
-    LDA #$05                    ; Restore the bank at the beginning of the routine.
-    JMP SwitchBank
+;    ; Summon the whirlwind.
+;    LDA #$01
+;    JSR SwitchBank
+;    JSR SummonWhirlwind
+;    LDA #$05                    ; Restore the bank at the beginning of the routine.
+;    JMP SwitchBank
 
 @FlagFluteUsed:
     ; Flag that we used the flute.
@@ -5845,14 +5949,14 @@ InitTileObjOrItem:
     BNE ResetObjMetastateAndTimer
 
 InitFluteSecret:
-    ; Summary:
-    ; The flute secret object manages the secret color cycle.
-    ;
-    ; The flute secret object is initialized in the same frame that
-    ; the flute was wielded. But this object won't update until
-    ; the flute timer expires.
-    LDA #$01
-    STA SecretColorCycle
+;    ; Summary:
+;    ; The flute secret object manages the secret color cycle.
+;    ;
+;    ; The flute secret object is initialized in the same frame that
+;    ; the flute was wielded. But this object won't update until
+;    ; the flute timer expires.
+;    LDA #$01
+;    STA SecretColorCycle
 
 ResetObjMetastateAndTimer:
     LDA #$00
@@ -5867,80 +5971,73 @@ ResetObjMetastate:
     STA ObjMetastate, X
     RTS
 
-WaterPaletteTransferBufTemplate:
-    .BYTE $3F, $0C, $04, $0F, $17, $37, $12, $FF
-
-PondCycleColors:
-    .BYTE $12, $11, $22, $21, $31, $32, $33, $35
-    .BYTE $34, $36, $37, $37
+; WaterPaletteTransferBufTemplate:
+;     .BYTE $3F, $0C, $04, $0F, $17, $37, $12, $FF
+; 
+; PondCycleColors:
+;     .BYTE $12, $11, $22, $21, $31, $32, $33, $35
+;     .BYTE $34, $36, $37, $37
 
 UpdateFluteSecret:
-    ; If secret color cycle >= $C, return.
-    LDY SecretColorCycle
-    CPY #$0C
-    BCS L1FF28_Exit
-
-    ; 7 of every 8 frames, return.
-    LDA FrameCounter
-    AND #$07
-    CMP #$04
-    BNE L1FF28_Exit
-
-    ; So, every 8 frames:
-    ; 1. Increment the secret color cycle count.
-    ; 2. Change the water palette.
-    ;
-    ; But when the count = $B, go reveal the stairs.
-    INC SecretColorCycle
-    CPY #$0B
-    BEQ RevealPondStairs
-
-; Params:
-; Y: a point in the cycle (0 to $B)
+;    ; If secret color cycle >= $C, return.
+;    LDY SecretColorCycle
+;    CPY #$0C
+;    BCS L1FF28_Exit
 ;
-CueTransferPondPaletteRow:
-    ; Copy water palette (palette row 3) transfer buf to dynamic
-    ; transfer buf.
-    TYA
-    PHA
-    LDY #$07
+;    ; 7 of every 8 frames, return.
+;    LDA FrameCounter
+;    AND #$07
+;    CMP #$04
+;    BNE L1FF28_Exit
+;
+;    ; So, every 8 frames:
+;    ; 1. Increment the secret color cycle count.
+;    ; 2. Change the water palette.
+;    ;
+;    ; But when the count = $B, go reveal the stairs.
+;    INC SecretColorCycle
+;    CPY #$0B
+;    BEQ RevealPondStairs
 
-@CopyBytes:
-    LDA WaterPaletteTransferBufTemplate, Y
-    STA DynTileBuf, Y
-    DEY
-    BPL @CopyBytes
-    PLA
-    TAY
-    LDA PondCycleColors, Y      ; Patch byte 3 of palette row with the right color in the cycle.
-    STA DynTileBuf+6
-    CPY #$0A
-    BNE L1FF28_Exit             ; If the index is $A,
-    LDA #$99                    ; then make most water tiles (< $99) walkable.
-    STA ObjectFirstUnwalkableTile
+; ; Params:
+; ; Y: a point in the cycle (0 to $B)
+; ;
+; CueTransferPondPaletteRow:
+;     ; Copy water palette (palette row 3) transfer buf to dynamic
+;     ; transfer buf.
+;     TYA
+;     PHA
+;     LDY #$07
+; 
+; @CopyBytes:
+; ;    LDA WaterPaletteTransferBufTemplate, Y
+;     STA DynTileBuf, Y
+;     DEY
+;     BPL @CopyBytes
+;     PLA
+;     TAY
+; ;    LDA PondCycleColors, Y      ; Patch byte 3 of palette row with the right color in the cycle.
+;     STA DynTileBuf+6
+;     CPY #$0A
+;     BNE L1FF28_Exit             ; If the index is $A,
+;     LDA #$99                    ; then make most water tiles (< $99) walkable.
+;     STA ObjectFirstUnwalkableTile
 
 L1FF28_Exit:
     RTS
 
-RevealPondStairs:
-    ; Set X and Y in this slot for the stairs in the pond.
-    ; Go reveal the stairs as a secret.
-    LDA #$60
-    STA ObjX, X
-    LDA #$90
-    STA ObjY, X
-    JMP RevealAndFlagSecretStairsObj
 
-AnimatePond:
-    ; Take turns between:
-    ; * 4 frames stepping the cycle
-    ; * 4 frames delaying
-    LDA FrameCounter
-    AND #$04
-    BEQ L1FF28_Exit
-    DEC SecretColorCycle
-    LDY SecretColorCycle
-    JMP CueTransferPondPaletteRow
+; 
+; AnimatePond:
+;     ; Take turns between:
+;     ; * 4 frames stepping the cycle
+;     ; * 4 frames delaying
+;     LDA FrameCounter
+;     AND #$04
+;     BEQ L1FF28_Exit
+;     DEC SecretColorCycle
+;     LDY SecretColorCycle
+;     JMP CueTransferPondPaletteRow
 
 .SEGMENT "BANK_07_ISR"
 

@@ -41,7 +41,7 @@ function CheckRequirements()
 
 function ExtractBins()
 {
-	$romPath = resolve-path .\ext\Original.nes
+	$romPath = resolve-path .\bin\Z.nes # I replaced .\ext\Original.nes with my custom one.
 	$binXmlPath = resolve-path .\src\bins.xml
 	$binRootPath = resolve-path .\bin
 

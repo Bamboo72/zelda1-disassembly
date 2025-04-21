@@ -8,7 +8,7 @@
   <Binary Offset='4855' Length='404' FileName='dat/SongScriptEnding0.dat'/>
   <Binary Offset='5259' Length='825' FileName='dat/SongScriptDemo0.dat'/>
   <Binary Offset='6084' Length='97' FileName='dat/SongScriptZelda0.dat'/>
-  <Binary Offset='16460' Length='1366' FileName='dat/PersonText.dat'/>
+  <Binary Offset='16460' Length='1366' FileName='dat/PersonTextModified.dat'/>
   <Binary Offset='19892' Length='2304' FileName='dat/DemoSpritePatterns.dat'/>
   <Binary Offset='22196' Length='2080' FileName='dat/DemoBackgroundPatterns.dat'/>
   <Binary Offset='32895' Length='1792' FileName='dat/CommonSpritePatterns.dat'/>
@@ -27,7 +27,7 @@
   <Binary Offset='58331' Length='1024' FileName='dat/PatternBlockUWSPBoss3468.dat'/>
   <Binary Offset='59355' Length='1024' FileName='dat/PatternBlockUWSPBoss9.dat'/>
   <Binary Offset='83574' Length='201' FileName='dat/ObjLists.dat'/>
-  <Binary Offset='87064' Length='1936' FileName='dat/RoomLayoutsOW.dat'/>
+  <Binary Offset='87064' Length='1936' FileName='dat/RoomLayoutsOWModified.dat'/>
   <Binary Offset='90334' Length='504' FileName='dat/RoomLayoutsUW.dat'/>
   <Binary Offset='99328' Length='768' FileName='dat/LevelBlockOW.dat'/>
   <Binary Offset='100096' Length='768' FileName='dat/LevelBlockUW1Q1.dat'/>

@@ -267,6 +267,8 @@ RupeesToAdd := $67D
 RupeesToSubtract := $67E
 WorldFlags := $67F
 
+HintMarkerRoomId := $777
+
 PpuControl_2000 := $2000
 PpuMask_2001 := $2001
 PpuStatus_2002 := $2002

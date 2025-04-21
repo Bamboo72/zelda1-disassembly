@@ -53,7 +53,7 @@ PersonTextAddrs:
     .INCLUDE "dat/PersonTextAddrs.inc"
 
 PersonText:
-    .INCBIN "dat/PersonText.dat"
+    .INCBIN "dat/PersonTextModified.dat"
 
 OverworldPersonTextSelectors:
     .BYTE $40, $60, $42, $42, $04, $06, $48, $0A
@@ -4144,7 +4144,7 @@ UpdatePositionMarker:
     AND #$70                    ; Sanitize the row of the room ID.
     LSR                         ; The rows in status bar map are 4 pixels tall.
     LSR
-    ADC #$17                    ; Add $17 pixels to Y coordinate.
+    ADC #$17                    ; Add $17 pixels to Y coordinate. (This lines it up with the map)
     STA Sprites+84, X           ; Place the position marker vertically.
     LDA #$11                    ; Map X at $11 in OW.
     LDY CurLevel
@@ -4166,8 +4166,9 @@ UpdatePositionMarker:
     LDA #$3E
     STA Sprites+85, X           ; Use the position marker tile.
     LDA #$00
-    CPX #$00
-    BEQ @SetAttr                ; If we're updating the triforce marker,
+     CPX #$00
+     BEQ @SetAttr                ; If we're updating the triforce marker,
+    ;JMP @SetAttr
     LDA #$03                    ; Set up a default "inactive" palette (attribute), which means "not gotten".
     PHA
     LDY CurLevel

@@ -38,6 +38,7 @@
 .IMPORT SilenceAllSound
 .IMPORT Sub1FromInt16At4
 .IMPORT UpdatePlayerPositionMarker
+.IMPORT UpdateMapHintMarker
 .IMPORT UpdateWorldCurtainEffect
 .IMPORT WieldBomb
 .IMPORT WieldCandle
@@ -193,6 +194,7 @@ UpdateMenuOW_JumpTable:
 UpdateMenuCommon1:
     JSR HideAllSprites
     JSR UpdatePlayerPositionMarker
+    JSR UpdateMapHintMarker
     JSR UpdateTriforcePositionMarker
 
     ; Move position markers and hardware vertical scroll position
@@ -442,6 +444,16 @@ MovePositionMarkers:
     CLC
     ADC $00
     STA Sprites+84
+    ;:
+    ; ; If in the OW, we need to move the hint marker too
+    ; LDA CurLevel
+    ; BEQ :+
+    ; LDA Sprites+88
+    ; CMP #$F8
+    ; BEQ :+
+    ; CLC
+    ; ADC $00
+    ; STA Sprites+88
 :
     ; If in UW and have the compass, then move the triforce position marker.
     LDA CurLevel
@@ -806,7 +818,7 @@ InitMode7_Sub0:
 :
     LDA SecretColorCycle
     BEQ L1433A_IncSubmode       ; If we had no flute secret (pond) or it finished, then go to next submode.
-    JMP AnimatePond             ; Go reverse the flute secret (pond colors).
+;    JMP AnimatePond             ; Go reverse the flute secret (pond colors).
 
 InitMode7_Sub2:
     ; This transfers a room's play area tiles to nametable 2.
@@ -1979,6 +1991,7 @@ AssignObjSpawnPositions:
     AND #$FC                    ; Cave
     SEC
     SBC #$40
+    ; When I changed it to SBC #$39, it changed the caves
     LSR
     LSR
 
@@ -4218,8 +4231,9 @@ WriteDoorFaceTileHorizontally:
     RTS
 
 RoomLayoutsOW:
-    .INCBIN "dat/RoomLayoutsOW.dat"
+    .INCBIN "dat/RoomLayoutsOWModified.dat"
 
+; As far as I can tell, this changes the layout for Level1
 RoomLayoutOWCave0:
     .BYTE $00, $00, $95, $95, $95, $95, $95, $C2
     .BYTE $C2, $95, $95, $95, $95, $95, $00, $00
@@ -4311,6 +4325,8 @@ ColumnHeapOW7:
     .BYTE $4E, $19, $0E, $19, $4E, $1A, $1B, $DB
     .BYTE $5B, $5B, $45
 
+; The starting screen should be in this heap
+; Less than 84 is walkable?
 ColumnHeapOW8:
     .BYTE $C5, $05, $5B, $5B, $DB, $5B, $27, $0E
     .BYTE $1A, $5B, $DB, $0E, $14, $0E, $14, $0E
@@ -8189,6 +8205,9 @@ Cycle9InDirection:
     RTS
 
 CreateRoomObjects:
+    LDA CurLevel
+    BEQ @LoadRandomCave
+
     ; Reset ObjState[$13] to activate room item object.
     LDA #$00
     STA ObjState+19
@@ -8257,6 +8276,11 @@ CreateRoomObjects:
     SBC #$08
     STA ObjX+19
 :
+    RTS
+
+@LoadRandomCave:  
+    LDA Random    ; Load a random value for the cave type
+    STA $6978   ; Save it
     RTS
 
 @MakeHeartContainerOW:
